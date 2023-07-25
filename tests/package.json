@@ -1,0 +1,15 @@
+{
+  "name": "haproxy_tests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./node_modules/mocha/bin/mocha.js index.js"
+  },
+  "author": "Andrea Marchesini <baku@mozilla.com>",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "mocha": "^10.2.0",
+    "node-fetch": "^2.6.12"
+  }
+}
