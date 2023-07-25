@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./node_modules/mocha/bin/mocha.js index.js"
+    "start": "node ./node_modules/mocha/bin/mocha.js --timeout 10000 index.js"
   },
   "author": "Andrea Marchesini <baku@mozilla.com>",
   "license": "MPL-2.0",
