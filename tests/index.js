@@ -144,8 +144,8 @@ describe('MozSoc URL mapping', () => {
     assert.equal((await request('@foo/following')).status, 302);
     assert.equal((await request('@foo/following')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/@foo/following', process.env.MOZSOC_URL));
 
-    // assert.equal((await request('search')).status, 302);
-    // assert.equal((await request('search')).headers.get('location'), new URL('/elk/search', process.env.MOZSOC_URL));
+    assert.equal((await request('search')).status, 302);
+    assert.equal((await request('search')).headers.get('location'), new URL('/elk/search', process.env.MOZSOC_URL));
   });
 
   it('Mastodon deprecated', async () => {
