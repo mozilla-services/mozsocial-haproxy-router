@@ -1,5 +1,5 @@
 const assert = require('assert');
-const fetch = require("node-fetch");
+const fetch = require('node-fetch');
 
 function url(pathname, query = '') {
   const url = new URL(process.env.MOZSOC_URL);
@@ -13,46 +13,70 @@ function url(pathname, query = '') {
 
 function request(pathname, query = '') {
   return fetch(url(pathname, query), {
-    redirect: 'manual'
+    redirect: 'manual',
   });
 }
 
 describe('MozSoc URL mapping', () => {
   beforeEach(() => {
     if (!process.env.MOZSOC_URL) {
-      throw new Error("Please set `MOZSOC_URL` env var")
+      throw new Error('Please set `MOZSOC_URL` env var');
     }
   });
 
   describe('Well-known', () => {
     it('well-known path', async () => {
       assert.equal((await request('.well-known')).status, 404);
-      assert.equal((await request('.well-known/nodeinfo')).status, 200);
     });
 
     it('well-known nodeinfo', async () => {
-      assert.equal((await request('.well-known/nodeinfo')).status, 200);
-      assert.equal((await request('.well-known/nodeinfo')).headers.get('content-type'), 'application/json; charset=utf-8');
+      const req = await request('.well-known/nodeinfo');
+      assert.equal(req.status, 200);
+      assert.equal(
+        req.headers.get('content-type'),
+        'application/json; charset=utf-8'
+      );
+      assert.equal(req.headers.get('x-server'), 'mastodon');
     });
 
     it('well-known host-meta', async () => {
-      assert.equal((await request('.well-known/host-meta')).status, 200);
-      assert.equal((await request('.well-known/host-meta')).headers.get('content-type'), 'application/xrd+xml; charset=utf-8');
+      const req = await request('.well-known/host-meta');
+      assert.equal(req.status, 200);
+      assert.equal(
+        req.headers.get('content-type'),
+        'application/xrd+xml; charset=utf-8'
+      );
+      assert.equal(req.headers.get('x-server'), 'mastodon');
     });
 
     it('well-known webfinger', async () => {
-      assert.equal((await request('.well-known/webfinger')).status, 400);
-      assert.equal((await request('.well-known/webfinger', 'resource=something@somethingelse')).status, 404);
+      const req = await request('.well-known/webfinger');
+      assert.equal(req.status, 400);
+      assert.equal(req.headers.get('x-server'), 'mastodon');
+    });
+    it('well-known webfinger', async () => {
+      const req = await request(
+        '.well-known/webfinger',
+        'resource=something@somethingelse'
+      );
+      assert.equal(req.status, 404);
+      assert.equal(req.headers.get('x-server'), 'mastodon');
     });
   });
 
   describe('Activity-Pub', () => {
     it('generic', async () => {
-      assert.equal((await fetch(url('/'), {
-        headers: {
-          'content-type': 'application/ld+json; profile="https://www.w3.org/ns/activitystreams"'
-        }
-      })).status, 200);
+      assert.equal(
+        (
+          await fetch(url('/'), {
+            headers: {
+              'content-type':
+                'application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
+            },
+          })
+        ).status,
+        200
+      );
     });
   });
 
@@ -61,9 +85,14 @@ describe('MozSoc URL mapping', () => {
   // TODO: /users/<**any>
 
   it('mastodon API', async () => {
-    assert.equal((await fetch(url('api/v1/apps'), {
-      method: 'POST'
-    })).status, 422);
+    assert.equal(
+      (
+        await fetch(url('api/v1/apps'), {
+          method: 'POST',
+        })
+      ).status,
+      422
+    );
   });
 
   it('mastodon health', async () => {
@@ -82,80 +111,167 @@ describe('MozSoc URL mapping', () => {
 
   // TODO: /admin
 
-  it('{o}auth', async () => {
-    assert.equal((await request('auth/sign_in')).status, 200);
+  describe('{o}auth', async () => {
+    it('auth/signin', async () => {
+      const req = await request('auth/sign_in');
+      assert.equal(req.status, 200);
+    });
 
-    assert.equal((await request('oauth/authorize/native')).status, 302);
-    assert.equal((await request('oauth/authorize/native')).headers.get('location'), new URL('/auth/sign_in', process.env.MOZSOC_URL));
+    it('auth/authorize/native', async () => {
+      const req = await request('oauth/authorize/native');
+      assert.equal(req.status, 302);
+      assert.equal(
+        req.headers.get('location'),
+        new URL('/auth/sign_in', process.env.MOZSOC_URL).toString()
+      );
+    });
   });
 
-  it('Elk', async () => {
-    assert.equal((await request('')).status, 302);
-    assert.equal((await request('')).headers.get('location'), new URL('/elk/', process.env.MOZSOC_URL));
+  describe('Elk', async () => {
+    it('', async () => {
+      const req = await request('');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('home')).status, 302);
-    assert.equal((await request('home')).headers.get('location'), new URL('/elk/home', process.env.MOZSOC_URL));
+    it('home', async () => {
+      const req = await request('home');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('settings')).status, 302);
-    assert.equal((await request('settings')).headers.get('location'), new URL('/elk/settings', process.env.MOZSOC_URL));
+    it('settings', async () => {
+      const req = await request('settings');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('settings/foo')).status, 302);
-    assert.equal((await request('settings/foo')).headers.get('location'), new URL('/elk/settings', process.env.MOZSOC_URL));
+    it('settings/foo', async () => {
+      const req = await request('settings/foo');
+      assert.equal(req.status, 302);
+      assert.equal(
+        req.headers.get('location'),
+        new URL('/settings', process.env.MOZSOC_URL)
+      );
+    });
 
-    assert.equal((await request('@foo')).status, 302);
-    assert.equal((await request('@foo')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/@foo', process.env.MOZSOC_URL));
+    it('@foo', async () => {
+      const req = await request('@foo');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('@foo/bar')).status, 302);
-    assert.equal((await request('@foo/bar')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/@foo/bar', process.env.MOZSOC_URL));
+    it('@foo/bar', async () => {
+      const req = await request('@foo/bar');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('explore')).status, 302);
-    assert.equal((await request('explore')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/explore', process.env.MOZSOC_URL));
+    it('explore', async () => {
+      const req = await request('explore');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('notifications')).status, 302);
-    assert.equal((await request('notifications')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/notifications', process.env.MOZSOC_URL));
+    it('notifications', async () => {
+      const req = await request('notifications');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('publish')).status, 302);
-    assert.equal((await request('publish')).headers.get('location'), new URL('/elk/compose', process.env.MOZSOC_URL));
+    it('publish', async () => {
+      const req = await request('publish');
+      assert.equal(req.status, 302);
+      assert.equal(
+        req.headers.get('location'),
+        new URL('/compose', process.env.MOZSOC_URL)
+      );
+    });
 
-    assert.equal((await request('favourites')).status, 302);
-    assert.equal((await request('favourites')).headers.get('location'), new URL('/elk/favourites', process.env.MOZSOC_URL));
+    it('favourites', async () => {
+      const req = await request('favourites');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('bookmarks')).status, 302);
-    assert.equal((await request('bookmarks')).headers.get('location'), new URL('/elk/bookmarks', process.env.MOZSOC_URL));
+    it('bookmarks', async () => {
+      const req = await request('bookmarks');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('conversations')).status, 302);
-    assert.equal((await request('conversations')).headers.get('location'), new URL('/elk/conversations', process.env.MOZSOC_URL));
+    it('conversations', async () => {
+      const req = await request('conversations');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('local')).status, 302);
-    assert.equal((await request('local')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/local', process.env.MOZSOC_URL));
+    it('public/local', async () => {
+      const req = await request('public/local');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('public/local')).status, 302);
-    assert.equal((await request('public/local')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/public/local', process.env.MOZSOC_URL));
+    it('lists', async () => {
+      const req = await request('lists');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('list')).status, 302);
-    assert.equal((await request('list')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/list', process.env.MOZSOC_URL));
+    it('tags/a', async () => {
+      const req = await request('tags/a');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('tags/a')).status, 302);
-    assert.equal((await request('tags/a')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/tags/a', process.env.MOZSOC_URL));
+    it('@foo/followers', async () => {
+      const req = await request('@foo/followers');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('@foo/followers')).status, 302);
-    assert.equal((await request('@foo/followers')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/@foo/followers', process.env.MOZSOC_URL));
+    it('@foo/following', async () => {
+      const req = await request('@foo/following');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
 
-    assert.equal((await request('@foo/following')).status, 302);
-    assert.equal((await request('@foo/following')).headers.get('location'), new URL('/elk/' + process.env.MOZSOC_HOST + '/@foo/following', process.env.MOZSOC_URL));
-
-    assert.equal((await request('search')).status, 302);
-    assert.equal((await request('search')).headers.get('location'), new URL('/elk/search', process.env.MOZSOC_URL));
+    it('search', async () => {
+      const req = await request('search');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
   });
 
-  it('Mastodon deprecated', async () => {
-    assert.equal((await request('user/@foo/followers')).status, 404);
-    assert.equal((await request('user/@foo/following')).status, 404);
+  describe('Mastodon deprecated', async () => {
+    it('user/@foo/followers', async () => {
+      const req = await request('user/@foo/followers');
+      assert.equal(req.status, 404);
+      assert.equal(req.headers.get('x-server'), 'mastodon');
+    });
 
-    assert.equal((await request('web')).status, 302);
-    assert.equal((await request('web')).headers.get('location'), new URL('/', process.env.MOZSOC_URL));
+    it('user/@foo/following', async () => {
+      const req = await request('user/@foo/following');
+      assert.equal(req.status, 404);
+      assert.equal(req.headers.get('x-server'), 'mastodon');
+    });
 
-    assert.equal((await request('about/more')).status, 302);
-    assert.equal((await request('about/more')).headers.get('location'), new URL('/about', process.env.MOZSOC_URL));
+    it('web', async () => {
+      const req = await request('web');
+      assert.equal(req.status, 302);
+      assert.equal(
+        req.headers.get('location'),
+        new URL('/', process.env.MOZSOC_URL)
+      );
+    });
+
+    it('about/more', async () => {
+      const req = await request('about/more');
+      assert.equal(req.status, 302);
+      assert.equal(
+        req.headers.get('location'),
+        new URL('/about', process.env.MOZSOC_URL)
+      );
+    });
   });
 });
