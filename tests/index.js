@@ -241,6 +241,12 @@ describe('MozSoc URL mapping', () => {
       assert.equal(req.status, 200);
       assert.equal(req.headers.get('x-server'), 'elk');
     });
+
+    it('discover', async () => {
+      const req = await request('discover');
+      assert.equal(req.status, 200);
+      assert.equal(req.headers.get('x-server'), 'elk');
+    });
   });
 
   describe('Mastodon deprecated', async () => {
