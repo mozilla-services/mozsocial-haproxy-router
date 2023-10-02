@@ -249,6 +249,28 @@ describe('MozSoc URL mapping', () => {
     });
   });
 
+  describe('Content-Feed', async () => {
+    it('moso/v1/discover 200', async () => {
+      const req = await request('content-feed/moso/v1/discover?locale=en-US');
+      assert.equal(req.status, 200);
+      assert.equal(
+        req.headers.get('content-type'),
+        'application/json; charset=utf-8'
+      );
+      assert.equal(req.headers.get('x-server'), 'content-feed');
+    });
+
+    it('moso/v1/discover 400 for missing query parameter', async () => {
+      const req = await request('content-feed/moso/v1/discover');
+      assert.equal(req.status, 400);
+    });
+
+    it('responds with 404 on a non-existing path', async () => {
+      const req = await request('content-feed/does-not-exist');
+      assert.equal(req.status, 404);
+    });
+  });
+
   describe('Mastodon deprecated', async () => {
     it('user/@foo/followers', async () => {
       const req = await request('user/@foo/followers');
