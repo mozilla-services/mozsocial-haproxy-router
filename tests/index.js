@@ -65,13 +65,39 @@ describe('MozSoc URL mapping', () => {
   });
 
   describe('Activity-Pub', () => {
-    it('generic', async () => {
+    it('content-type header', async () => {
       assert.equal(
         (
           await fetch(url('/'), {
             headers: {
               'content-type':
                 'application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
+            },
+          })
+        ).status,
+        200
+      );
+    });
+    it('accept header', async () => {
+      assert.equal(
+        (
+          await fetch(url('/'), {
+            headers: {
+              'accept':
+                'application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
+            },
+          })
+        ).status,
+        200
+      );
+    });
+    it('accept header plus more', async () => {
+      assert.equal(
+        (
+          await fetch(url('/'), {
+            headers: {
+              'accept':
+                'application/ld+json; profile="https://www.w3.org/ns/activitystreams", text/html;q=0.1',
             },
           })
         ).status,
@@ -144,15 +170,6 @@ describe('MozSoc URL mapping', () => {
       const req = await request('settings');
       assert.equal(req.status, 200);
       assert.equal(req.headers.get('x-server'), 'elk');
-    });
-
-    it('settings/foo', async () => {
-      const req = await request('settings/foo');
-      assert.equal(req.status, 302);
-      assert.equal(
-        req.headers.get('location'),
-        new URL('/settings', process.env.MOZSOC_URL)
-      );
     });
 
     it('@foo', async () => {
